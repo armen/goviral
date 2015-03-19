@@ -1,5 +1,5 @@
 <class
-    name = "zgossip"
+    name = "zgossip_msg"
     title = "ZeroMQ Gossip Protocol"
     script = "zproto_codec_go"
     package_dir = "."

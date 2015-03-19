@@ -1,4 +1,4 @@
-package zgossip
+package msg
 
 import (
 	"bytes"
@@ -10,28 +10,28 @@ import (
 	zmq "github.com/pebbe/zmq4"
 )
 
-// Hello struct
-// Client says hello to server
-type Hello struct {
+// Invalid struct
+// Server rejects command as invalid
+type Invalid struct {
 	routingID []byte
 	version   byte
 }
 
-// NewHello creates new Hello message.
-func NewHello() *Hello {
-	hello := &Hello{}
-	return hello
+// NewInvalid creates new Invalid message.
+func NewInvalid() *Invalid {
+	invalid := &Invalid{}
+	return invalid
 }
 
 // String returns print friendly name.
-func (h *Hello) String() string {
-	str := "ZGOSSIP_HELLO:\n"
-	str += fmt.Sprintf("    version = %v\n", h.version)
+func (i *Invalid) String() string {
+	str := "ZGOSSIP_MSG_INVALID:\n"
+	str += fmt.Sprintf("    version = %v\n", i.version)
 	return str
 }
 
 // Marshal serializes the message.
-func (h *Hello) Marshal() ([]byte, error) {
+func (i *Invalid) Marshal() ([]byte, error) {
 	// Calculate size of serialized data
 	bufferSize := 2 + 1 // Signature and message ID
 
@@ -43,7 +43,7 @@ func (h *Hello) Marshal() ([]byte, error) {
 	tmpBuf = tmpBuf[:0]
 	buffer := bytes.NewBuffer(tmpBuf)
 	binary.Write(buffer, binary.BigEndian, Signature)
-	binary.Write(buffer, binary.BigEndian, HelloID)
+	binary.Write(buffer, binary.BigEndian, InvalidID)
 
 	// version
 	value, _ := strconv.ParseUint("1", 10, 1*8)
@@ -53,7 +53,7 @@ func (h *Hello) Marshal() ([]byte, error) {
 }
 
 // Unmarshal unmarshals the message.
-func (h *Hello) Unmarshal(frames ...[]byte) error {
+func (i *Invalid) Unmarshal(frames ...[]byte) error {
 	if frames == nil {
 		return errors.New("Can't unmarshal empty message")
 	}
@@ -73,12 +73,12 @@ func (h *Hello) Unmarshal(frames ...[]byte) error {
 	// Get message id and parse per message type
 	var id uint8
 	binary.Read(buffer, binary.BigEndian, &id)
-	if id != HelloID {
-		return errors.New("malformed Hello message")
+	if id != InvalidID {
+		return errors.New("malformed Invalid message")
 	}
 	// version
-	binary.Read(buffer, binary.BigEndian, &h.version)
-	if h.version != 1 {
+	binary.Read(buffer, binary.BigEndian, &i.version)
+	if i.version != 1 {
 		return errors.New("malformed version message")
 	}
 
@@ -86,8 +86,8 @@ func (h *Hello) Unmarshal(frames ...[]byte) error {
 }
 
 // Send sends marshaled data through 0mq socket.
-func (h *Hello) Send(socket *zmq.Socket) (err error) {
-	frame, err := h.Marshal()
+func (i *Invalid) Send(socket *zmq.Socket) (err error) {
+	frame, err := i.Marshal()
 	if err != nil {
 		return err
 	}
@@ -99,7 +99,7 @@ func (h *Hello) Send(socket *zmq.Socket) (err error) {
 
 	// If we're sending to a ROUTER, we send the routingID first
 	if socType == zmq.ROUTER {
-		_, err = socket.SendBytes(h.routingID, zmq.SNDMORE)
+		_, err = socket.SendBytes(i.routingID, zmq.SNDMORE)
 		if err != nil {
 			return err
 		}
@@ -116,22 +116,22 @@ func (h *Hello) Send(socket *zmq.Socket) (err error) {
 
 // RoutingID returns the routingID for this message, routingID should be set
 // whenever talking to a ROUTER.
-func (h *Hello) RoutingID() []byte {
-	return h.routingID
+func (i *Invalid) RoutingID() []byte {
+	return i.routingID
 }
 
 // SetRoutingID sets the routingID for this message, routingID should be set
 // whenever talking to a ROUTER.
-func (h *Hello) SetRoutingID(routingID []byte) {
-	h.routingID = routingID
+func (i *Invalid) SetRoutingID(routingID []byte) {
+	i.routingID = routingID
 }
 
 // SetVersion sets the version.
-func (h *Hello) SetVersion(version byte) {
-	h.version = version
+func (i *Invalid) SetVersion(version byte) {
+	i.version = version
 }
 
 // Version returns the version.
-func (h *Hello) Version() byte {
-	return h.version
+func (i *Invalid) Version() byte {
+	return i.version
 }

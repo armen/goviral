@@ -1,4 +1,4 @@
-package zgossip
+package msg
 
 import (
 	"bytes"
@@ -10,30 +10,28 @@ import (
 	zmq "github.com/pebbe/zmq4"
 )
 
-// Pong struct
-// Server responds to ping; note that pongs are not correlated with pings,
-// and may be mixed with other commands, and the client should treat any
-// incoming traffic as valid activity.
-type Pong struct {
+// Ping struct
+// Client signals liveness
+type Ping struct {
 	routingID []byte
 	version   byte
 }
 
-// NewPong creates new Pong message.
-func NewPong() *Pong {
-	pong := &Pong{}
-	return pong
+// NewPing creates new Ping message.
+func NewPing() *Ping {
+	ping := &Ping{}
+	return ping
 }
 
 // String returns print friendly name.
-func (p *Pong) String() string {
-	str := "ZGOSSIP_PONG:\n"
+func (p *Ping) String() string {
+	str := "ZGOSSIP_MSG_PING:\n"
 	str += fmt.Sprintf("    version = %v\n", p.version)
 	return str
 }
 
 // Marshal serializes the message.
-func (p *Pong) Marshal() ([]byte, error) {
+func (p *Ping) Marshal() ([]byte, error) {
 	// Calculate size of serialized data
 	bufferSize := 2 + 1 // Signature and message ID
 
@@ -45,7 +43,7 @@ func (p *Pong) Marshal() ([]byte, error) {
 	tmpBuf = tmpBuf[:0]
 	buffer := bytes.NewBuffer(tmpBuf)
 	binary.Write(buffer, binary.BigEndian, Signature)
-	binary.Write(buffer, binary.BigEndian, PongID)
+	binary.Write(buffer, binary.BigEndian, PingID)
 
 	// version
 	value, _ := strconv.ParseUint("1", 10, 1*8)
@@ -55,7 +53,7 @@ func (p *Pong) Marshal() ([]byte, error) {
 }
 
 // Unmarshal unmarshals the message.
-func (p *Pong) Unmarshal(frames ...[]byte) error {
+func (p *Ping) Unmarshal(frames ...[]byte) error {
 	if frames == nil {
 		return errors.New("Can't unmarshal empty message")
 	}
@@ -75,8 +73,8 @@ func (p *Pong) Unmarshal(frames ...[]byte) error {
 	// Get message id and parse per message type
 	var id uint8
 	binary.Read(buffer, binary.BigEndian, &id)
-	if id != PongID {
-		return errors.New("malformed Pong message")
+	if id != PingID {
+		return errors.New("malformed Ping message")
 	}
 	// version
 	binary.Read(buffer, binary.BigEndian, &p.version)
@@ -88,7 +86,7 @@ func (p *Pong) Unmarshal(frames ...[]byte) error {
 }
 
 // Send sends marshaled data through 0mq socket.
-func (p *Pong) Send(socket *zmq.Socket) (err error) {
+func (p *Ping) Send(socket *zmq.Socket) (err error) {
 	frame, err := p.Marshal()
 	if err != nil {
 		return err
@@ -118,22 +116,22 @@ func (p *Pong) Send(socket *zmq.Socket) (err error) {
 
 // RoutingID returns the routingID for this message, routingID should be set
 // whenever talking to a ROUTER.
-func (p *Pong) RoutingID() []byte {
+func (p *Ping) RoutingID() []byte {
 	return p.routingID
 }
 
 // SetRoutingID sets the routingID for this message, routingID should be set
 // whenever talking to a ROUTER.
-func (p *Pong) SetRoutingID(routingID []byte) {
+func (p *Ping) SetRoutingID(routingID []byte) {
 	p.routingID = routingID
 }
 
 // SetVersion sets the version.
-func (p *Pong) SetVersion(version byte) {
+func (p *Ping) SetVersion(version byte) {
 	p.version = version
 }
 
 // Version returns the version.
-func (p *Pong) Version() byte {
+func (p *Ping) Version() byte {
 	return p.version
 }

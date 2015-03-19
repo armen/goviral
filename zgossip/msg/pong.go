@@ -1,4 +1,4 @@
-package zgossip
+package msg
 
 import (
 	"bytes"
@@ -10,28 +10,30 @@ import (
 	zmq "github.com/pebbe/zmq4"
 )
 
-// Invalid struct
-// Server rejects command as invalid
-type Invalid struct {
+// Pong struct
+// Server responds to ping; note that pongs are not correlated with pings,
+// and may be mixed with other commands, and the client should treat any
+// incoming traffic as valid activity.
+type Pong struct {
 	routingID []byte
 	version   byte
 }
 
-// NewInvalid creates new Invalid message.
-func NewInvalid() *Invalid {
-	invalid := &Invalid{}
-	return invalid
+// NewPong creates new Pong message.
+func NewPong() *Pong {
+	pong := &Pong{}
+	return pong
 }
 
 // String returns print friendly name.
-func (i *Invalid) String() string {
-	str := "ZGOSSIP_INVALID:\n"
-	str += fmt.Sprintf("    version = %v\n", i.version)
+func (p *Pong) String() string {
+	str := "ZGOSSIP_MSG_PONG:\n"
+	str += fmt.Sprintf("    version = %v\n", p.version)
 	return str
 }
 
 // Marshal serializes the message.
-func (i *Invalid) Marshal() ([]byte, error) {
+func (p *Pong) Marshal() ([]byte, error) {
 	// Calculate size of serialized data
 	bufferSize := 2 + 1 // Signature and message ID
 
@@ -43,7 +45,7 @@ func (i *Invalid) Marshal() ([]byte, error) {
 	tmpBuf = tmpBuf[:0]
 	buffer := bytes.NewBuffer(tmpBuf)
 	binary.Write(buffer, binary.BigEndian, Signature)
-	binary.Write(buffer, binary.BigEndian, InvalidID)
+	binary.Write(buffer, binary.BigEndian, PongID)
 
 	// version
 	value, _ := strconv.ParseUint("1", 10, 1*8)
@@ -53,7 +55,7 @@ func (i *Invalid) Marshal() ([]byte, error) {
 }
 
 // Unmarshal unmarshals the message.
-func (i *Invalid) Unmarshal(frames ...[]byte) error {
+func (p *Pong) Unmarshal(frames ...[]byte) error {
 	if frames == nil {
 		return errors.New("Can't unmarshal empty message")
 	}
@@ -73,12 +75,12 @@ func (i *Invalid) Unmarshal(frames ...[]byte) error {
 	// Get message id and parse per message type
 	var id uint8
 	binary.Read(buffer, binary.BigEndian, &id)
-	if id != InvalidID {
-		return errors.New("malformed Invalid message")
+	if id != PongID {
+		return errors.New("malformed Pong message")
 	}
 	// version
-	binary.Read(buffer, binary.BigEndian, &i.version)
-	if i.version != 1 {
+	binary.Read(buffer, binary.BigEndian, &p.version)
+	if p.version != 1 {
 		return errors.New("malformed version message")
 	}
 
@@ -86,8 +88,8 @@ func (i *Invalid) Unmarshal(frames ...[]byte) error {
 }
 
 // Send sends marshaled data through 0mq socket.
-func (i *Invalid) Send(socket *zmq.Socket) (err error) {
-	frame, err := i.Marshal()
+func (p *Pong) Send(socket *zmq.Socket) (err error) {
+	frame, err := p.Marshal()
 	if err != nil {
 		return err
 	}
@@ -99,7 +101,7 @@ func (i *Invalid) Send(socket *zmq.Socket) (err error) {
 
 	// If we're sending to a ROUTER, we send the routingID first
 	if socType == zmq.ROUTER {
-		_, err = socket.SendBytes(i.routingID, zmq.SNDMORE)
+		_, err = socket.SendBytes(p.routingID, zmq.SNDMORE)
 		if err != nil {
 			return err
 		}
@@ -116,22 +118,22 @@ func (i *Invalid) Send(socket *zmq.Socket) (err error) {
 
 // RoutingID returns the routingID for this message, routingID should be set
 // whenever talking to a ROUTER.
-func (i *Invalid) RoutingID() []byte {
-	return i.routingID
+func (p *Pong) RoutingID() []byte {
+	return p.routingID
 }
 
 // SetRoutingID sets the routingID for this message, routingID should be set
 // whenever talking to a ROUTER.
-func (i *Invalid) SetRoutingID(routingID []byte) {
-	i.routingID = routingID
+func (p *Pong) SetRoutingID(routingID []byte) {
+	p.routingID = routingID
 }
 
 // SetVersion sets the version.
-func (i *Invalid) SetVersion(version byte) {
-	i.version = version
+func (p *Pong) SetVersion(version byte) {
+	p.version = version
 }
 
 // Version returns the version.
-func (i *Invalid) Version() byte {
-	return i.version
+func (p *Pong) Version() byte {
+	return p.version
 }

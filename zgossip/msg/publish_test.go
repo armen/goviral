@@ -1,4 +1,4 @@
-package zgossip
+package msg
 
 import (
 	"testing"

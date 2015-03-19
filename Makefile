@@ -7,8 +7,9 @@ all:
 test:
 	go test github.com/armen/goviral/zgossip
 
-zgissip-msg:
-	gsl -script:zproto_codec_go zgossip_msg.xml
+generate:
+	gsl zgossip_msg.xml
+	gsl zgossip.xml
 
 gofmt-hook:
 	cp ${ROOT}/misc/gofmt-hook/pre-commit ${GIT}/hooks/
