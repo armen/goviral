@@ -3,6 +3,7 @@
     title = "zgossip server"
     script = "zproto_server_go"
     protocol_class = "zgossip_msg"
+    protocol_package = "github.com/armen/goviral/zgossip/msg"
     package_dir = "."
     >
     This is a server implementation of the ZeroMQ Gossip Discovery Protocol

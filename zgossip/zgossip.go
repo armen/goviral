@@ -1,7 +1,65 @@
-// Package zgossip is 100% generated. If you edit this file,
-// you will lose your changes at the next build cycle.
-// DO NOT MAKE ANY CHANGES YOU WISH TO KEEP.
-//
-// The correct places for commits are:
-//  - The XML model used for this code generation: zgossip.xml
-//  - The code generation script that built this file: zproto_server_go
+// Package zgossip
+package zgossip
+
+// myServer defines the context for each running server. Store
+// whatever properties and structures you need for the server.
+// myServer will be embedded in engine's server struct.
+type myServer struct {
+	// TODO: Add any properties you need here
+}
+
+// myClient defines the state for each client connection. myClient
+// will be embedded in engine's client struct. Note that all the actions
+// are defined on client not this type but since this type is embedded
+// in client they can access all the properties you defined here.
+type myClient struct {
+	//  TODO: Add specific properties for your application
+}
+
+// Allocate properties and structures for a new server instance.
+func (s *server) init() error {
+	return nil
+}
+
+// Free properties and structures for a server instance
+func (s *server) terminate() error {
+	// Destroy properties here
+	return nil
+}
+
+// Process server API method, return reply message if any
+func (s *server) method(msg *cmd) (*resp, error) {
+	return nil, nil
+}
+
+// Allocate properties and structures for a new client connection and
+// optionally engine_set_next_event().
+func (c *client) init() error {
+	return nil
+}
+
+// Free properties and structures for a client connection
+func (c *client) terminate() error {
+	// Destroy properties here
+	return nil
+}
+
+// GetFirstTuple
+func (c *client) GetFirstTuple() error {
+	return nil
+}
+
+// GetNextTuple
+func (c *client) GetNextTuple() error {
+	return nil
+}
+
+// StoreTupleIfNew
+func (c *client) StoreTupleIfNew() error {
+	return nil
+}
+
+// GetTupleToForward
+func (c *client) GetTupleToForward() error {
+	return nil
+}
