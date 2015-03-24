@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"math/rand"
 	"os"
 	"time"
@@ -55,6 +56,15 @@ const (
 	dynPortFrom uint16 = 0xc000
 	dynPortTo   uint16 = 0xffff
 )
+
+// Names for state machine logging and error reporting
+var stateName = []string{
+	"(NONE)",
+	"start",
+	"have tuple",
+	"connected",
+	"external",
+}
 
 var eventName = map[event]string{
 	nullEvent:      "(NONE)",
@@ -167,6 +177,7 @@ func newServer() (*server, error) {
 	return s, nil
 }
 
+// Creates a new client
 func (s *server) newClient() *client {
 
 	s.clientID++
@@ -282,7 +293,7 @@ func (s *server) handleProtocol() error {
 		}
 
 		// Pass to client state machine
-		c.execute()
+		c.execute(c.protocolEvent())
 	}
 
 	return nil
@@ -298,9 +309,259 @@ func (c *client) handleTimeout() error {
 	return nil
 }
 
+func (c *client) protocolEvent() event {
+	switch c.server.message.(type) {
+	case *msg.Hello:
+		return helloEvent
+	case *msg.Publish:
+		return publishEvent
+	case *msg.Ping:
+		return pingEvent
+	default:
+		// Invalid msg message
+		return terminateEvent
+	}
+}
+
 // Execute state machine as long as we have events
-func (c *client) execute() error {
+func (c *client) execute(e event) error {
+	c.nextEvent = e
+	// TODO(armen): Cancel wakeup timer, if any was pending
+
+	for c.nextEvent > nullEvent {
+		c.event = c.nextEvent
+		c.nextEvent = nullEvent
+		c.exception = nullEvent
+
+		if c.server.verbose {
+			log.Printf("%s: %s:", c.logPrefix, stateName[c.state])
+			log.Printf("%s:     %s", c.logPrefix, eventName[c.event])
+		}
+
+		switch c.state {
+		case startState:
+			switch c.event {
+			case helloEvent:
+				if c.exception == 0 {
+					// get first tuple
+					if c.server.verbose {
+						log.Printf("%s:         $ get first tuple", c.logPrefix)
+					}
+					c.getFirstTuple()
+				}
+				if c.exception == 0 {
+					c.state = haveTupleState
+				}
+			case pingEvent:
+				if c.exception == 0 {
+					// send Pong
+					if c.server.verbose {
+						log.Printf("%s:         $ send Pong", c.logPrefix)
+					}
+					m := msg.NewPong()
+					m.SetRoutingID(c.routingID)
+					if err := m.Send(c.server.router); err != nil {
+						return err
+					}
+				}
+			case expiredEvent:
+				if c.exception == 0 {
+					// terminate
+					if c.server.verbose {
+						log.Printf("%s:         $ terminate", c.logPrefix)
+					}
+					c.nextEvent = terminateEvent
+				}
+			default:
+				// Handle unexpected protocol events
+				if c.exception == 0 {
+					// send Invalid
+					if c.server.verbose {
+						log.Printf("%s:         $ send Invalid", c.logPrefix)
+					}
+					m := msg.NewInvalid()
+					m.SetRoutingID(c.routingID)
+					if err := m.Send(c.server.router); err != nil {
+						return err
+					}
+				}
+				if c.exception == 0 {
+					// terminate
+					if c.server.verbose {
+						log.Printf("%s:         $ terminate", c.logPrefix)
+					}
+					c.nextEvent = terminateEvent
+				}
+			}
+		case haveTupleState:
+			switch c.event {
+			case okEvent:
+				if c.exception == 0 {
+					// send Publish
+					if c.server.verbose {
+						log.Printf("%s:         $ send Publish", c.logPrefix)
+					}
+					m := msg.NewPublish()
+					m.SetRoutingID(c.routingID)
+					if err := m.Send(c.server.router); err != nil {
+						return err
+					}
+				}
+				if c.exception == 0 {
+					// get next tuple
+					if c.server.verbose {
+						log.Printf("%s:         $ get next tuple", c.logPrefix)
+					}
+					c.getNextTuple()
+				}
+			case finishedEvent:
+				if c.exception == 0 {
+					c.state = connectedState
+				}
+				if c.exception != 0 {
+					// Handle unexpected internal events
+					log.Printf("%s: unhandled event %s in %s", c.logPrefix, eventName[c.event], stateName[c.state])
+				}
+			}
+		case connectedState:
+			switch c.event {
+			case publishEvent:
+				if c.exception == 0 {
+					// store tuple if new
+					if c.server.verbose {
+						log.Printf("%s:         $ store tuple if new", c.logPrefix)
+					}
+					c.storeTupleIfNew()
+				}
+			case forwardEvent:
+				if c.exception == 0 {
+					// get tuple to forward
+					if c.server.verbose {
+						log.Printf("%s:         $ get tuple to forward", c.logPrefix)
+					}
+					c.getTupleToForward()
+				}
+				if c.exception == 0 {
+					// send Publish
+					if c.server.verbose {
+						log.Printf("%s:         $ send Publish", c.logPrefix)
+					}
+					m := msg.NewPublish()
+					m.SetRoutingID(c.routingID)
+					if err := m.Send(c.server.router); err != nil {
+						return err
+					}
+				}
+			case pingEvent:
+				if c.exception == 0 {
+					// send Pong
+					if c.server.verbose {
+						log.Printf("%s:         $ send Pong", c.logPrefix)
+					}
+					m := msg.NewPong()
+					m.SetRoutingID(c.routingID)
+					if err := m.Send(c.server.router); err != nil {
+						return err
+					}
+				}
+			case expiredEvent:
+				if c.exception == 0 {
+					// terminate
+					if c.server.verbose {
+						log.Printf("%s:         $ terminate", c.logPrefix)
+					}
+					c.nextEvent = terminateEvent
+				}
+			default:
+				// Handle unexpected protocol events
+				if c.exception == 0 {
+					// send Invalid
+					if c.server.verbose {
+						log.Printf("%s:         $ send Invalid", c.logPrefix)
+					}
+					m := msg.NewInvalid()
+					m.SetRoutingID(c.routingID)
+					if err := m.Send(c.server.router); err != nil {
+						return err
+					}
+				}
+				if c.exception == 0 {
+					// terminate
+					if c.server.verbose {
+						log.Printf("%s:         $ terminate", c.logPrefix)
+					}
+					c.nextEvent = terminateEvent
+				}
+			}
+		case externalState:
+			switch c.event {
+			case pingEvent:
+				if c.exception == 0 {
+					// send Pong
+					if c.server.verbose {
+						log.Printf("%s:         $ send Pong", c.logPrefix)
+					}
+					m := msg.NewPong()
+					m.SetRoutingID(c.routingID)
+					if err := m.Send(c.server.router); err != nil {
+						return err
+					}
+				}
+			case expiredEvent:
+				if c.exception == 0 {
+					// terminate
+					if c.server.verbose {
+						log.Printf("%s:         $ terminate", c.logPrefix)
+					}
+					c.nextEvent = terminateEvent
+				}
+			default:
+				// Handle unexpected protocol events
+				if c.exception == 0 {
+					// send Invalid
+					if c.server.verbose {
+						log.Printf("%s:         $ send Invalid", c.logPrefix)
+					}
+					m := msg.NewInvalid()
+					m.SetRoutingID(c.routingID)
+					if err := m.Send(c.server.router); err != nil {
+						return err
+					}
+				}
+				if c.exception == 0 {
+					// terminate
+					if c.server.verbose {
+						log.Printf("%s:         $ terminate", c.logPrefix)
+					}
+					c.nextEvent = terminateEvent
+				}
+			}
+		}
+		// If we had an exception event, interrupt normal programming
+		if c.exception != 0 {
+			if c.server.verbose {
+				log.Printf("%s:         ! %s", c.logPrefix, eventName[c.exception])
+			}
+
+			c.nextEvent = c.exception
+		}
+		if c.nextEvent == terminateEvent {
+			// Automatically calls s_client_destroy
+			delete(c.server.clients, c.hashKey)
+			break
+		} else if c.server.verbose {
+			log.Printf("%s:         > %s", c.logPrefix, stateName[c.state])
+		}
+	}
+
 	return nil
+}
+
+// Set the next event, needed in at least one action in an internal
+// state; otherwise the state machine will wait for a message on the
+// router socket and treat that as the event.
+func (c *client) setNextEvent(e event) {
+	c.nextEvent = e
 }
 
 // Binds a zeromq socket to an ephemeral port and returns the port

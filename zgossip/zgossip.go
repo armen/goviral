@@ -13,7 +13,7 @@ type myServer struct {
 // are defined on client not this type but since this type is embedded
 // in client they can access all the properties you defined here.
 type myClient struct {
-	//  TODO: Add specific properties for your application
+	// TODO: Add specific properties for your application
 }
 
 // Allocate properties and structures for a new server instance.
@@ -33,7 +33,7 @@ func (s *server) method(msg *cmd) (*resp, error) {
 }
 
 // Allocate properties and structures for a new client connection and
-// optionally engine_set_next_event().
+// optionally c.setNextEvent(event).
 func (c *client) init() error {
 	return nil
 }
@@ -44,22 +44,22 @@ func (c *client) terminate() error {
 	return nil
 }
 
-// GetFirstTuple
-func (c *client) GetFirstTuple() error {
+// getFirstTuple
+func (c *client) getFirstTuple() error {
 	return nil
 }
 
-// GetNextTuple
-func (c *client) GetNextTuple() error {
+// getNextTuple
+func (c *client) getNextTuple() error {
 	return nil
 }
 
-// StoreTupleIfNew
-func (c *client) StoreTupleIfNew() error {
+// storeTupleIfNew
+func (c *client) storeTupleIfNew() error {
 	return nil
 }
 
-// GetTupleToForward
-func (c *client) GetTupleToForward() error {
+// getTupleToForward
+func (c *client) getTupleToForward() error {
 	return nil
 }
