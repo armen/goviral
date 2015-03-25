@@ -398,11 +398,16 @@ func (c *client) execute(e event) error {
 					if c.server.verbose {
 						log.Printf("%s:         $ send Pong", c.logPrefix)
 					}
-					m := msg.NewPong()
-					m.SetRoutingID(c.routingID)
-					if err := m.Send(c.server.router); err != nil {
+					// Set the message if it's not already set by previous actions
+					if c.server.message == nil {
+						c.server.message = msg.NewPong()
+					}
+					c.server.message.SetRoutingID(c.routingID)
+					if err := c.server.message.Send(c.server.router); err != nil {
+						c.server.message = nil
 						return err
 					}
+					c.server.message = nil
 				}
 			case expiredEvent:
 				if c.exception == 0 {
@@ -419,11 +424,16 @@ func (c *client) execute(e event) error {
 					if c.server.verbose {
 						log.Printf("%s:         $ send Invalid", c.logPrefix)
 					}
-					m := msg.NewInvalid()
-					m.SetRoutingID(c.routingID)
-					if err := m.Send(c.server.router); err != nil {
+					// Set the message if it's not already set by previous actions
+					if c.server.message == nil {
+						c.server.message = msg.NewInvalid()
+					}
+					c.server.message.SetRoutingID(c.routingID)
+					if err := c.server.message.Send(c.server.router); err != nil {
+						c.server.message = nil
 						return err
 					}
+					c.server.message = nil
 				}
 				if c.exception == 0 {
 					// terminate
@@ -441,11 +451,16 @@ func (c *client) execute(e event) error {
 					if c.server.verbose {
 						log.Printf("%s:         $ send Publish", c.logPrefix)
 					}
-					m := msg.NewPublish()
-					m.SetRoutingID(c.routingID)
-					if err := m.Send(c.server.router); err != nil {
+					// Set the message if it's not already set by previous actions
+					if c.server.message == nil {
+						c.server.message = msg.NewPublish()
+					}
+					c.server.message.SetRoutingID(c.routingID)
+					if err := c.server.message.Send(c.server.router); err != nil {
+						c.server.message = nil
 						return err
 					}
+					c.server.message = nil
 				}
 				if c.exception == 0 {
 					// get next tuple
@@ -495,11 +510,16 @@ func (c *client) execute(e event) error {
 					if c.server.verbose {
 						log.Printf("%s:         $ send Publish", c.logPrefix)
 					}
-					m := msg.NewPublish()
-					m.SetRoutingID(c.routingID)
-					if err := m.Send(c.server.router); err != nil {
+					// Set the message if it's not already set by previous actions
+					if c.server.message == nil {
+						c.server.message = msg.NewPublish()
+					}
+					c.server.message.SetRoutingID(c.routingID)
+					if err := c.server.message.Send(c.server.router); err != nil {
+						c.server.message = nil
 						return err
 					}
+					c.server.message = nil
 				}
 			case pingEvent:
 				if c.exception == 0 {
@@ -507,11 +527,16 @@ func (c *client) execute(e event) error {
 					if c.server.verbose {
 						log.Printf("%s:         $ send Pong", c.logPrefix)
 					}
-					m := msg.NewPong()
-					m.SetRoutingID(c.routingID)
-					if err := m.Send(c.server.router); err != nil {
+					// Set the message if it's not already set by previous actions
+					if c.server.message == nil {
+						c.server.message = msg.NewPong()
+					}
+					c.server.message.SetRoutingID(c.routingID)
+					if err := c.server.message.Send(c.server.router); err != nil {
+						c.server.message = nil
 						return err
 					}
+					c.server.message = nil
 				}
 			case expiredEvent:
 				if c.exception == 0 {
@@ -528,11 +553,16 @@ func (c *client) execute(e event) error {
 					if c.server.verbose {
 						log.Printf("%s:         $ send Invalid", c.logPrefix)
 					}
-					m := msg.NewInvalid()
-					m.SetRoutingID(c.routingID)
-					if err := m.Send(c.server.router); err != nil {
+					// Set the message if it's not already set by previous actions
+					if c.server.message == nil {
+						c.server.message = msg.NewInvalid()
+					}
+					c.server.message.SetRoutingID(c.routingID)
+					if err := c.server.message.Send(c.server.router); err != nil {
+						c.server.message = nil
 						return err
 					}
+					c.server.message = nil
 				}
 				if c.exception == 0 {
 					// terminate
@@ -550,11 +580,16 @@ func (c *client) execute(e event) error {
 					if c.server.verbose {
 						log.Printf("%s:         $ send Pong", c.logPrefix)
 					}
-					m := msg.NewPong()
-					m.SetRoutingID(c.routingID)
-					if err := m.Send(c.server.router); err != nil {
+					// Set the message if it's not already set by previous actions
+					if c.server.message == nil {
+						c.server.message = msg.NewPong()
+					}
+					c.server.message.SetRoutingID(c.routingID)
+					if err := c.server.message.Send(c.server.router); err != nil {
+						c.server.message = nil
 						return err
 					}
+					c.server.message = nil
 				}
 			case expiredEvent:
 				if c.exception == 0 {
@@ -571,11 +606,16 @@ func (c *client) execute(e event) error {
 					if c.server.verbose {
 						log.Printf("%s:         $ send Invalid", c.logPrefix)
 					}
-					m := msg.NewInvalid()
-					m.SetRoutingID(c.routingID)
-					if err := m.Send(c.server.router); err != nil {
+					// Set the message if it's not already set by previous actions
+					if c.server.message == nil {
+						c.server.message = msg.NewInvalid()
+					}
+					c.server.message.SetRoutingID(c.routingID)
+					if err := c.server.message.Send(c.server.router); err != nil {
+						c.server.message = nil
 						return err
 					}
+					c.server.message = nil
 				}
 				if c.exception == 0 {
 					// terminate
