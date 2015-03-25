@@ -384,7 +384,10 @@ func (c *client) execute(e event) error {
 					if c.server.verbose {
 						log.Printf("%s:         $ get first tuple", c.logPrefix)
 					}
-					c.getFirstTuple()
+
+					if err := c.getFirstTuple(); err != nil {
+						return err
+					}
 				}
 				if c.exception == 0 {
 					c.state = haveTupleState
@@ -449,7 +452,10 @@ func (c *client) execute(e event) error {
 					if c.server.verbose {
 						log.Printf("%s:         $ get next tuple", c.logPrefix)
 					}
-					c.getNextTuple()
+
+					if err := c.getNextTuple(); err != nil {
+						return err
+					}
 				}
 			case finishedEvent:
 				if c.exception == 0 {
@@ -468,7 +474,10 @@ func (c *client) execute(e event) error {
 					if c.server.verbose {
 						log.Printf("%s:         $ store tuple if new", c.logPrefix)
 					}
-					c.storeTupleIfNew()
+
+					if err := c.storeTupleIfNew(); err != nil {
+						return err
+					}
 				}
 			case forwardEvent:
 				if c.exception == 0 {
@@ -476,7 +485,10 @@ func (c *client) execute(e event) error {
 					if c.server.verbose {
 						log.Printf("%s:         $ get tuple to forward", c.logPrefix)
 					}
-					c.getTupleToForward()
+
+					if err := c.getTupleToForward(); err != nil {
+						return err
+					}
 				}
 				if c.exception == 0 {
 					// send Publish
