@@ -167,14 +167,51 @@ func newServer() (*server, error) {
 		return nil, err
 	}
 
-	s.loop.AddSocket(s.router, zmq.POLLIN, func(e zmq.State) error { return s.handleProtocol() })
-	s.loop.AddChannel(s.pipe, 1, func(msg interface{}) error { return s.handlePipe(msg) })
-	s.loop.AddChannelTime(time.Tick(confInterval), 1, func(i interface{}) error { return s.watchConfig() })
+	s.addSocketHandler(s.router, zmq.POLLIN, func(e zmq.State) error { return s.handleProtocol() })
+	s.addChanHandler(s.pipe, func(msg interface{}) error { return s.handlePipe(msg) })
+	s.addTicker(time.Tick(confInterval), func(i interface{}) error { return s.watchConfig() })
 
 	rand.Seed(time.Now().UTC().UnixNano())
 	s.clientID = uint(rand.Intn(1000))
 
 	return s, nil
+}
+
+// Execute 'event' on all clients known to the server
+func (s *server) broadcastEvent(e event) {
+	for _, client := range s.clients {
+		client.execute(e)
+	}
+}
+
+// Adds the socket to the loop
+func (s *server) addSocketHandler(socket *zmq.Socket, events zmq.State, handler func(zmq.State) error) {
+	s.loop.AddSocket(socket, events, handler)
+}
+
+// Removes the socket from the loop
+func (s *server) removeSocketHandler(socket *zmq.Socket) {
+	s.loop.RemoveSocket(socket)
+}
+
+// Adds the channel to the loop
+func (s *server) addChanHandler(ch <-chan interface{}, handler func(interface{}) error) uint64 {
+	return s.loop.AddChannel(ch, 1, handler)
+}
+
+// Removes the channel from the loop
+func (s *server) removeChanHandler(id uint64) {
+	s.loop.RemoveChannel(id)
+}
+
+// Adds the ticker to the loop
+func (s *server) addTicker(ch <-chan time.Time, handler func(interface{}) error) uint64 {
+	return s.loop.AddChannelTime(ch, 1, handler)
+}
+
+// Removes the ticker from the loop
+func (s *server) removeTicker(id uint64) {
+	s.loop.RemoveChannel(id)
 }
 
 // Creates a new client
@@ -191,7 +228,7 @@ func (s *server) newClient() *client {
 
 	// If expiry timers are being used, create client timeout handler
 	if s.timeout != 0 {
-		c.ticket = s.loop.AddChannelTime(time.Tick(s.timeout), 1, func(i interface{}) error { return c.handleTimeout() })
+		c.ticket = s.addTicker(time.Tick(s.timeout), func(i interface{}) error { return c.handleTimeout() })
 	}
 
 	// Give application chance to initialize and set next event
@@ -288,8 +325,8 @@ func (s *server) handleProtocol() error {
 		c := s.clients[routeID]
 		// Any input from client counts as activity
 		if c.ticket != 0 {
-			s.loop.RemoveChannel(c.ticket)
-			c.ticket = s.loop.AddChannelTime(time.Tick(s.timeout), 1, func(i interface{}) error { return c.handleTimeout() })
+			s.removeTicker(c.ticket)
+			c.ticket = s.addTicker(time.Tick(s.timeout), func(i interface{}) error { return c.handleTimeout() })
 		}
 
 		// Pass to client state machine
