@@ -1,4 +1,4 @@
-// Package zgossip
+// Package zgossip is a server implementation of the ZeroMQ Gossip Discovery Protocol
 package zgossip
 
 import (
@@ -200,5 +200,6 @@ func (c *client) getTupleToForward() error {
 	m.Key = c.server.curTuple.key
 	m.Value = c.server.curTuple.value
 	c.server.message = m
+
 	return nil
 }

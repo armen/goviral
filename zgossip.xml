@@ -6,7 +6,7 @@
     protocol_package = "github.com/armen/goviral/zgossip/msg"
     package_dir = "."
     >
-    This is a server implementation of the ZeroMQ Gossip Discovery Protocol
+    Package zgossip is a server implementation of the ZeroMQ Gossip Discovery Protocol
     <include filename = "license.xml" />
 
     <state name = "start" inherit = "external">
