@@ -41,17 +41,15 @@ func TestPublish(t *testing.T) {
 
 	// Create a Publish message and send it through the wire
 	publish := NewPublish()
-
 	publish.Key = "Life is short but Now lasts for ever"
-
 	publish.Value = "Life is short but Now lasts for ever"
-
 	publish.Ttl = 123
 
 	err = publish.Send(output)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	transit, err := Recv(input)
 	if err != nil {
 		t.Fatal(err)
@@ -59,18 +57,18 @@ func TestPublish(t *testing.T) {
 
 	tr := transit.(*Publish)
 
+	// Tests string
 	if tr.Key != "Life is short but Now lasts for ever" {
 		t.Fatalf("expected %s, got %s", "Life is short but Now lasts for ever", tr.Key)
 	}
-
+	// Tests longstr
 	if tr.Value != "Life is short but Now lasts for ever" {
 		t.Fatalf("expected %s, got %s", "Life is short but Now lasts for ever", tr.Value)
 	}
-
+	// Tests number
 	if tr.Ttl != 123 {
 		t.Fatalf("expected %d, got %d", 123, tr.Ttl)
 	}
-
 	err = tr.Send(input)
 	if err != nil {
 		t.Fatal(err)
