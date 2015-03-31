@@ -3,6 +3,7 @@ package zgossip
 
 import (
 	"container/list"
+	"fmt"
 
 	msg "github.com/armen/goviral/zgossip/msg"
 	zmq "github.com/pebbe/zmq4"
@@ -32,6 +33,12 @@ type tuple struct {
 	value string
 }
 
+const (
+	cmdConnect = "CONNECT"
+	cmdPublish = "PUBLISH"
+	cmdStatus  = "STATUS"
+)
+
 // Allocate properties and structures for a new server instance.
 func (s *server) init() error {
 	s.remotes = list.New()
@@ -43,7 +50,10 @@ func (s *server) init() error {
 
 // Free properties and structures for a server instance
 func (s *server) terminate() error {
-	// Destroy properties here
+	for r := s.remotes.Front(); r != nil; r = r.Next() {
+		remote := r.Value.(*zmq.Socket)
+		remote.Close()
+	}
 	return nil
 }
 
@@ -62,6 +72,11 @@ func (s *server) connect(endpoint string) error {
 		return err
 	}
 	err = remote.SetRcvhwm(0)
+	if err != nil {
+		return err
+	}
+
+	err = remote.Connect(endpoint)
 	if err != nil {
 		return err
 	}
@@ -95,10 +110,12 @@ func (s *server) remoteHandler(remote *zmq.Socket) error {
 	switch m := t.(type) {
 	case *msg.Publish:
 		s.accept(m.Key, m.Value)
+
 	case *msg.Invalid:
 		// Connection was reset, so send HELLO again
 		h := msg.NewHello()
 		h.Send(remote)
+
 	case *msg.Pong:
 		// Do nothing with PONGs
 	}
@@ -108,7 +125,7 @@ func (s *server) remoteHandler(remote *zmq.Socket) error {
 
 // Process an incoming tuple on this server.
 func (s *server) accept(key, value string) {
-	if v, ok := s.tuplesMap[value]; ok && v == value {
+	if v, ok := s.tuplesMap[key]; ok && v == value {
 		// Duplicate tuple, do nothing
 		return
 	}
@@ -118,7 +135,10 @@ func (s *server) accept(key, value string) {
 	s.tuplesMap[key] = value
 	s.tuples.PushBack(t)
 
-	// TODO(armen): Deliver to calling application
+	select {
+	case s.resp <- &Resp{Method: "DELIVER", Payload: map[string]string{key: value}}:
+	default:
+	}
 
 	// Hold in server context so we can broadcast to all clients
 	// Hold the tuple in server.curTuple so it's available to all clients
@@ -137,7 +157,23 @@ func (s *server) accept(key, value string) {
 }
 
 // Process server API method, return reply message if any
-func (s *server) method(msg *cmd) (*resp, error) {
+func (s *server) method(msg *cmd) (*Resp, error) {
+	switch msg.method {
+	case cmdConnect:
+		endpoint := msg.arg.(string)
+		err := s.connect(endpoint)
+		return nil, err
+
+	case cmdPublish:
+		kv := msg.arg.(map[string]string)
+		for key, val := range kv {
+			s.accept(key, val)
+		}
+
+	default:
+		return nil, fmt.Errorf("unknown zgossip method %q", msg.method)
+	}
+
 	return nil, nil
 }
 
@@ -161,10 +197,6 @@ func (c *client) getFirstTuple() error {
 
 // getNextTuple
 func (c *client) getNextTuple() error {
-	if c.curElem == nil {
-		c.setNextEvent(finishedEvent)
-	}
-
 	c.prepareTuple(c.curElem.Next())
 
 	return nil
@@ -172,12 +204,14 @@ func (c *client) getNextTuple() error {
 
 func (c *client) prepareTuple(elem *list.Element) {
 	c.curElem = elem
+
 	if c.curElem != nil {
 		t := c.curElem.Value.(*tuple)
 		m := msg.NewPublish()
 		m.Key = t.key
 		m.Value = t.value
 		c.server.message = m
+
 		c.setNextEvent(okEvent)
 	} else {
 		c.setNextEvent(finishedEvent)

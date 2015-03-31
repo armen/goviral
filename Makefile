@@ -11,6 +11,10 @@ generate:
 	gsl zgossip_msg.xml
 	gsl zgossip.xml
 
+trace:
+	gsl -trace:1 zgossip_msg.xml
+	gsl -trace:1 zgossip.xml
+
 gofmt-hook:
 	cp ${ROOT}/misc/gofmt-hook/pre-commit ${GIT}/hooks/
 	chmod +x ${GIT}/hooks/pre-commit
