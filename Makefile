@@ -10,6 +10,7 @@ test:
 generate:
 	gsl zgossip_msg.xml
 	gsl zgossip.xml
+	gofmt -w zgossip/*
 
 trace:
 	gsl -trace:1 zgossip_msg.xml
