@@ -279,7 +279,10 @@ func (s *server) handlePipe(i interface{}) (err error) {
 		s.routerEndpoint = msg.arg.(string)
 		s.port, err = bind(s.router, s.routerEndpoint)
 		if err != nil {
-			return err
+			if s.verbose {
+				log.Println(err)
+			}
+			return nil
 		}
 
 		s.addSocketHandler(s.router, zmq.POLLIN, func(e zmq.State) error { return s.handleProtocol() })
@@ -295,7 +298,10 @@ func (s *server) handlePipe(i interface{}) (err error) {
 
 		info, err := os.Stat(filename)
 		if err != nil {
-			return err
+			if s.verbose {
+				log.Println(err)
+			}
+			return nil
 		}
 
 		if s.configInfo != nil &&
@@ -308,17 +314,26 @@ func (s *server) handlePipe(i interface{}) (err error) {
 		s.configInfo = info
 		data, err := ioutil.ReadFile(filename)
 		if err != nil {
-			return err
+			if s.verbose {
+				log.Println(err)
+			}
+			return nil
 		}
 		err = zpl.Unmarshal(data, &s.config)
 		if err != nil {
-			return err
+			if s.verbose {
+				log.Println(err)
+			}
+			return nil
 		}
 
 	case cmdSet:
 		args := msg.arg.([]string)
 		if len(args) < 2 {
-			return errors.New("Not enough arguments for set command")
+			if s.verbose {
+				log.Println("Not enough arguments for set command")
+			}
+			return nil
 		}
 
 		// path := args[0]
@@ -331,7 +346,10 @@ func (s *server) handlePipe(i interface{}) (err error) {
 	default:
 		r, err := s.method(msg)
 		if err != nil {
-			return err
+			if s.verbose {
+				log.Println(err)
+			}
+			return nil
 		}
 		if r != nil {
 			select {
