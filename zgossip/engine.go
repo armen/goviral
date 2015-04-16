@@ -746,6 +746,8 @@ func bind(s *zmq.Socket, endpoint string) (port uint16, err error) {
 			if err == nil {
 				break
 			} else if err.Error() == "no such device" {
+				port = 0
+				err = fmt.Errorf("no such device: %s", endpoint)
 				break
 			} else if i-dynPortFrom > 100 {
 				err = errors.New("Unable to bind to an ephemeral port")
